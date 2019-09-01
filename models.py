@@ -15,7 +15,7 @@ from sklearn.model_selection import train_test_split
 
 import read_save_data as rd
 from const import dwt_data_no_amr_normalized, encoded_features, rating, \
-    energy_power_minmax_minmax_diff_amr_gamma
+    energy_power_minmax_minmax_diff_amr_gamma, energy_power_entropy_mean_st_dev
 
 log_dir = './graph_abs_1'
 # Model saving directory
@@ -32,6 +32,7 @@ plots_dir = './plots/'
 conv_log_dir = './graph_conv_gamma1'
 conv_log_dir_encoded = './graph_conv_encoded'
 conv_log_dir_features = './graph_conv_features'
+conv_log_dir_features5 = './graph_conv_features5'
 
 
 # LSTM model based on raw data
@@ -567,7 +568,7 @@ def convolution_model_energy_power_minmax(data_filename):
     checkpointer = ModelCheckpoint(filepath=model_filepath, verbose=1, save_best_only=True)
 
     n_cols = 42
-    n_rows = 1280*29
+    n_rows = 1280 * 29
     batch_size = 64
     model_valence = Sequential()
     dropout = 0.2
@@ -614,7 +615,80 @@ def convolution_model_energy_power_minmax(data_filename):
     print("Data labeled")
 
     # valance train
-    x_train, x_valid, y_train, y_valid = train_test_split(np.array(features_flat).reshape(n_rows, n_cols, 1), valance_labels, test_size=0.2)
+    x_train, x_valid, y_train, y_valid = train_test_split(np.array(features_flat).reshape(n_rows, n_cols, 1),
+                                                          valance_labels, test_size=0.2)
+
+    model_valence.fit(x=x_train,
+                      y=y_train,
+                      batch_size=batch_size,
+                      epochs=6000,
+                      validation_data=(x_valid, y_valid),
+                      callbacks=[tsb_log, checkpointer])
+
+    score, acc = model_valence.evaluate(x=x_valid,
+                                        y=y_valid,
+                                        verbose=2,
+                                        batch_size=batch_size)
+    print("Score: %.4f" % score)
+    print("Acc: %.4f" % acc)
+
+
+def convolution_model_energy_power_entropy_mean_st_dev(data_filename):
+    # callbacks
+    tsb_log = TensorBoard(log_dir=conv_log_dir_features, histogram_freq=100, write_graph=True, write_images=True)
+    model_filepath = path.join(model_dir, "CONV_FEATURES5_" + dt.datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))
+    checkpointer = ModelCheckpoint(filepath=model_filepath, verbose=1, save_best_only=True)
+
+    n_cols = 70
+    n_rows = 1280 * 29
+    batch_size = 64
+    model_valence = Sequential()
+    dropout = 0.2
+
+    model_valence.add(Conv1D(16, 9, input_shape=(n_cols, 1)))
+    model_valence.add(MaxPooling1D(3, 2))
+    model_valence.add(Dropout(dropout))
+
+    model_valence.add(Conv1D(32, 5))
+    model_valence.add(MaxPooling1D(3, 2))
+    model_valence.add(Dropout(dropout))
+
+    model_valence.add(Conv1D(64, 3))
+    model_valence.add(MaxPooling1D(3, 2))
+
+    model_valence.add(Flatten())
+    model_valence.add(Dropout(dropout))
+
+    model_valence.add(Dense(128, activation='relu', activity_regularizer=l2(0.001)))
+    model_valence.add(Dropout(dropout))
+    model_valence.add(Dense(64, activation='relu', activity_regularizer=l2(0.001)))
+    model_valence.add(Dropout(dropout))
+    model_valence.add(Dense(3, activation='softmax', activity_regularizer=l2(0.001)))
+    model_valence.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+
+    print(model_valence.summary())
+
+    features = pkl.load(open(data_filename, 'rb'))
+    features_flat = pd.concat(features, ignore_index=True)
+    all_ratings = pkl.load(open(rating, 'rb'))
+    print("Data loaded")
+
+    valence = all_ratings['valence']
+    valence = [item for item in valence for i in range(29)]
+    # arousal = all_ratings['arousal']
+
+    v = np.array(valence)
+    v = (v - 1) / 8
+    valance_labels = pd.DataFrame()
+    valance_labels['0'] = list(map(lambda x: 1 if x < 0.33 else 0, v))
+    valance_labels['1'] = list(map(lambda x: 1 if 0.33 <= x < 0.66 else 0, v))
+    valance_labels['2'] = list(map(lambda x: 1 if x >= 0.66 else 0, v))
+
+    print("Data labeled")
+
+    # valance train
+    x_train, x_valid, y_train, y_valid = train_test_split(np.array(features_flat).reshape(n_rows, n_cols, 1),
+                                                          valance_labels, test_size=0.2)
 
     model_valence.fit(x=x_train,
                       y=y_train,
@@ -633,8 +707,9 @@ def convolution_model_energy_power_minmax(data_filename):
 
 def main():
     create_dir()
-    convolution_model_energy_power_minmax(energy_power_minmax_minmax_diff_amr_gamma)
+    convolution_model_energy_power_entropy_mean_st_dev(energy_power_entropy_mean_st_dev)
 
+    # convolution_model_energy_power_minmax(energy_power_minmax_minmax_diff_amr_gamma)
     # lstm_model_dwt(dwt_data)
     # convolution_model(dwt_data)
     # model_raw(windowed_data)
