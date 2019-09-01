@@ -347,7 +347,7 @@ def create_dir():
     pathlib.Path(encoder_dir).mkdir(exist_ok=True)
     pathlib.Path(encoder_log_dir).mkdir(exist_ok=True)
     pathlib.Path(conv_log_dir_encoded).mkdir(exist_ok=True)
-
+    pathlib.Path(conv_log_dir_features5).mkdir(exist_ok=True)
 
 # Show results of autoencoder
 def zip_data(df_list):
