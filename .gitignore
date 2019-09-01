@@ -1,0 +1,16 @@
+/graph*
+/plots/
+events*
+/venv/
+/theta_dir/
+/alpha_dir/
+/gamma_dir/
+.idea/
+/encoder/
+/encoder_graph/
+/__pycache__/
+*png
+*pkl
+!energy*pkl
+!data_for_knn_downsampled.pkl
+!rating.pkl
