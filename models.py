@@ -645,21 +645,21 @@ def convolution_model_energy_power_entropy_mean_st_dev(data_filename):
     model_valence = Sequential()
     dropout = 0.2
 
-    model_valence.add(Conv1D(16, 9, input_shape=(n_cols, 1)))
+    model_valence.add(Conv1D(32, 9, input_shape=(n_cols, 1)))
     model_valence.add(MaxPooling1D(3, 2))
     model_valence.add(Dropout(dropout))
 
-    model_valence.add(Conv1D(32, 5))
+    model_valence.add(Conv1D(64, 5))
     model_valence.add(MaxPooling1D(3, 2))
     model_valence.add(Dropout(dropout))
 
-    model_valence.add(Conv1D(64, 3))
+    model_valence.add(Conv1D(128, 3))
     model_valence.add(MaxPooling1D(3, 2))
 
     model_valence.add(Flatten())
     model_valence.add(Dropout(dropout))
 
-    model_valence.add(Dense(128, activation='relu', activity_regularizer=l2(0.001)))
+    model_valence.add(Dense(256, activation='relu', activity_regularizer=l2(0.001)))
     model_valence.add(Dropout(dropout))
     model_valence.add(Dense(64, activation='relu', activity_regularizer=l2(0.001)))
     model_valence.add(Dropout(dropout))
