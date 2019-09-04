@@ -15,7 +15,7 @@ from sklearn.model_selection import train_test_split
 
 import read_save_data as rd
 from const import dwt_data_no_amr_normalized, encoded_features, rating, \
-    energy_power_minmax_minmax_diff_amr_gamma, energy_power_entropy_mean_st_dev
+    energy_power_entropy_mean_st_dev
 
 log_dir = './graph_abs_1'
 # Model saving directory
@@ -35,6 +35,8 @@ conv_log_dir_features = './graph_conv_features'
 conv_log_dir_features5 = './graph_conv_features5'
 conv_log_dir_features5_more_layers = './graph_conv_features5_more_layers'
 feedforward_log_dir_features5 = './graph_feedforward_features5'
+conv_arousal_log_dir = './graph_conv_arousal_features5'
+
 
 # LSTM model based on raw data
 # FIXME probably useless
@@ -351,6 +353,8 @@ def create_dir():
     pathlib.Path(conv_log_dir_features5).mkdir(exist_ok=True)
     pathlib.Path(conv_log_dir_features5_more_layers).mkdir(exist_ok=True)
     pathlib.Path(feedforward_log_dir_features5).mkdir(exist_ok=True)
+    pathlib.Path(conv_arousal_log_dir).mkdir(exist_ok=True)
+
 
 # Show results of autoencoder
 def zip_data(df_list):
@@ -636,15 +640,16 @@ def convolution_model_energy_power_minmax(data_filename):
     print("Acc: %.4f" % acc)
 
 
-def convolution_model_energy_power_entropy_mean_st_dev(data_filename):
+def convolution_valence_model_energy_power_entropy_mean_st_dev(data_filename):
     # callbacks
-    tsb_log = TensorBoard(log_dir=conv_log_dir_features5_more_layers, histogram_freq=100, write_graph=True, write_images=True)
-    model_filepath = path.join(model_dir, "CONV_FEATURES5_MORE_LAYERS_" + dt.datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))
+    tsb_log = TensorBoard(log_dir=conv_log_dir_features5_more_layers, histogram_freq=100, write_graph=True,
+                          write_images=True)
+    model_filepath = path.join(model_dir, "CONV_FEATURES5_VALENCE" + dt.datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))
     checkpointer = ModelCheckpoint(filepath=model_filepath, verbose=1, save_best_only=True)
 
     n_cols = 70
     n_rows = 1280 * 29
-    
+
     batch_size = 64
     model_valence = Sequential()
     dropout = 0.2
@@ -679,7 +684,6 @@ def convolution_model_energy_power_entropy_mean_st_dev(data_filename):
 
     valence = all_ratings['valence']
     valence = [item for item in valence for i in range(29)]
-    # arousal = all_ratings['arousal']
 
     v = np.array(valence)
     v = (v - 1) / 8
@@ -709,41 +713,114 @@ def convolution_model_energy_power_entropy_mean_st_dev(data_filename):
     print("Acc: %.4f" % acc)
 
 
+def convolution_arousal_model_energy_power_entropy_mean_st_dev(data_filename):
+    # callbacks
+    tsb_log = TensorBoard(log_dir=conv_arousal_log_dir, histogram_freq=100, write_graph=True,
+                          write_images=True)
+    model_filepath = path.join(model_dir,
+                               "CONV_FEATURES5_AROUSAL_" + dt.datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))
+    checkpointer = ModelCheckpoint(filepath=model_filepath, verbose=1, save_best_only=True)
+
+    n_cols = 70
+    n_rows = 1280 * 29
+
+    batch_size = 64
+    model_arousal = Sequential()
+    dropout = 0.2
+
+    model_arousal.add(Conv1D(32, 9, input_shape=(n_cols, 1)))
+    model_arousal.add(MaxPooling1D(3, 2))
+    model_arousal.add(Dropout(dropout))
+
+    model_arousal.add(Conv1D(64, 5))
+    model_arousal.add(MaxPooling1D(3, 2))
+    model_arousal.add(Dropout(dropout))
+
+    model_arousal.add(Conv1D(128, 3))
+    model_arousal.add(MaxPooling1D(3, 2))
+
+    model_arousal.add(Flatten())
+    model_arousal.add(Dropout(dropout))
+
+    model_arousal.add(Dense(256, activation='relu', activity_regularizer=l2(0.001)))
+    model_arousal.add(Dropout(dropout))
+    model_arousal.add(Dense(64, activation='relu', activity_regularizer=l2(0.001)))
+    model_arousal.add(Dropout(dropout))
+    model_arousal.add(Dense(3, activation='softmax', activity_regularizer=l2(0.001)))
+    model_arousal.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+
+    print(model_arousal.summary())
+
+    features = pkl.load(open(data_filename, 'rb'))
+    features_flat = pd.concat(features, ignore_index=True)
+    all_ratings = pkl.load(open(rating, 'rb'))
+    print("Data loaded")
+
+    arousal = all_ratings['arousal']
+    arousal = [item for item in arousal for i in range(29)]
+
+    a = np.array(arousal)
+    a = (a - 1) / 8
+    arousal_labels = pd.DataFrame()
+    arousal_labels['0'] = list(map(lambda x: 1 if x < 0.33 else 0, a))
+    arousal_labels['1'] = list(map(lambda x: 1 if 0.33 <= x < 0.66 else 0, a))
+    arousal_labels['2'] = list(map(lambda x: 1 if x >= 0.66 else 0, a))
+
+    print("Data labeled")
+
+    # arousal train
+    x_train, x_valid, y_train, y_valid = train_test_split(np.array(features_flat).reshape(n_rows, n_cols, 1),
+                                                          arousal_labels, test_size=0.2)
+
+    model_arousal.fit(x=x_train,
+                      y=y_train,
+                      batch_size=batch_size,
+                      epochs=6000,
+                      validation_data=(x_valid, y_valid),
+                      callbacks=[tsb_log, checkpointer])
+
+    score, acc = model_arousal.evaluate(x=x_valid,
+                                        y=y_valid,
+                                        verbose=2,
+                                        batch_size=batch_size)
+    print("Score: %.4f" % score)
+    print("Acc: %.4f" % acc)
+
 
 def feedforward_model_energy_power_entropy_mean_st_dev(data_filename):
     # callbacks
-    tsb_log = TensorBoard(log_dir=feedforward_log_dir_features5, histogram_freq=100, write_graph=True, write_images=True)
+    tsb_log = TensorBoard(log_dir=feedforward_log_dir_features5, histogram_freq=100, write_graph=True,
+                          write_images=True)
     model_filepath = path.join(model_dir, "FEEDFORWARD_FEATURES5_" + dt.datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))
     checkpointer = ModelCheckpoint(filepath=model_filepath, verbose=1, save_best_only=True)
 
     n_cols = 70
     n_rows = 1280 * 29
-    
+
     batch_size = 64
     model_valence = Sequential()
     dropout = 0.2
 
     model_valence.add(Dense(32, activation='relu', activity_regularizer=l2(0.001), input_shape=(70,)))
-    
+
     model_valence.add(Dense(64, activation='relu', activity_regularizer=l2(0.001)))
     model_valence.add(Dropout(dropout))
-    
+
     model_valence.add(Dense(128, activation='relu', activity_regularizer=l2(0.001)))
     model_valence.add(Dropout(dropout))
-    
-    #model_valence.add(Dense(256, activation='relu', activity_regularizer=l2(0.001)))
-    #model_valence.add(Dropout(dropout))
-    
-    #model_valence.add(Dense(128, activation='relu', activity_regularizer=l2(0.001)))
-    #model_valence.add(Dropout(dropout))
 
+    # model_valence.add(Dense(256, activation='relu', activity_regularizer=l2(0.001)))
+    # model_valence.add(Dropout(dropout))
+
+    # model_valence.add(Dense(128, activation='relu', activity_regularizer=l2(0.001)))
+    # model_valence.add(Dropout(dropout))
 
     model_valence.add(Dense(64, activation='relu', activity_regularizer=l2(0.001)))
     model_valence.add(Dropout(dropout))
 
     model_valence.add(Dense(32, activation='relu', activity_regularizer=l2(0.001)))
     model_valence.add(Dropout(dropout))
-    
+
     model_valence.add(Dense(3, activation='softmax', activity_regularizer=l2(0.001)))
     model_valence.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
 
@@ -786,11 +863,9 @@ def feedforward_model_energy_power_entropy_mean_st_dev(data_filename):
     print("Acc: %.4f" % acc)
 
 
-
-
 def main():
     create_dir()
-    feedforward_model_energy_power_entropy_mean_st_dev(energy_power_entropy_mean_st_dev)
+    convolution_arousal_model_energy_power_entropy_mean_st_dev(energy_power_entropy_mean_st_dev)
 
     # convolution_model_energy_power_minmax(energy_power_minmax_minmax_diff_amr_gamma)
     # lstm_model_dwt(dwt_data)
