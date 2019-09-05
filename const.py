@@ -77,4 +77,5 @@ theta_coefficients_by_channel = "./theta_dwt_by_channel.pkl"
 rating = './rating.pkl'
 
 energy_power_minmax_minmax_diff_amr_gamma = './energy_power_minmax_diff_no_amr_gamma.pkl'
-energy_power_entropy_mean_st_dev = './energy_power_entropy_mean_st_dev.pkl'''
+energy_power_entropy_mean_st_dev = './energy_power_entropy_mean_st_dev.pkl'
+energy_power_entropy_mean_st_dev_with_amr = './energy_power_entropy_mean_st_dev_with_amr.pkl'

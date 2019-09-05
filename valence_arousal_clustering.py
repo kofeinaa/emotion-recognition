@@ -1,11 +1,13 @@
-from sklearn.cluster import SpectralClustering, KMeans, MiniBatchKMeans, AffinityPropagation, MeanShift, \
-    estimate_bandwidth
+import pickle as pkl
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 from pandas import DataFrame
+from sklearn.cluster import KMeans
 
 import read_save_data as rd
-import numpy as np
-import matplotlib.pyplot as plt
-import pandas as pd
+from const import dwt_data, energy_power_entropy_mean_st_dev, rating, channels
 
 
 # Shows data labelling
@@ -61,9 +63,41 @@ def cluster_data(filename):
     # plt.show()
 
 
-def main():
-    cluster_data('./data_dwt.pkl')
+def cluster_entropy():
+    features = pkl.load(open(energy_power_entropy_mean_st_dev, 'rb'))
+    features_flat = pd.concat(features, ignore_index=True)
 
+    all_ratings = pkl.load(open(rating, 'rb'))
+    print("Data loaded")
+
+    valence = all_ratings['valence']
+    valence = [item for item in valence for i in range(29)]
+
+    v = np.array(valence)
+    v = (v - 1) / 8
+    valance_labels = pd.DataFrame()
+    valance_labels['0'] = list(map(lambda x: 1 if x < 0.33 else 0, v))
+    valance_labels['1'] = list(map(lambda x: 1 if 0.33 <= x < 0.66 else 0, v))
+    valance_labels['2'] = list(map(lambda x: 1 if x >= 0.66 else 0, v))
+
+    n = 1280 * 29
+    zeros = [0] * n
+
+    classes = valance_labels.idxmax(axis=1)
+    for channel in channels:
+        name = channel + '_entropy'
+
+        entropy = features_flat[name]
+        # x = np.arange(np.min(entropy), np.max(entropy))
+
+        plt.title(channel)
+        plt.scatter(entropy, classes)
+        plt.legend()
+        plt.show()
+
+
+def main():
+    cluster_entropy()
 
 if __name__ == "__main__":
     main()

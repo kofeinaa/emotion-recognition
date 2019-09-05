@@ -32,10 +32,10 @@ plots_dir = './plots/'
 conv_log_dir = './graph_conv_gamma1'
 conv_log_dir_encoded = './graph_conv_encoded'
 conv_log_dir_features = './graph_conv_features'
-conv_log_dir_features5 = './graph_conv_features5'
+conv_log_dir_features5 = './graph_conv_features5_no_dropout'
 conv_log_dir_features5_more_layers = './graph_conv_features5_more_layers'
 feedforward_log_dir_features5 = './graph_feedforward_features5'
-conv_arousal_log_dir = './graph_conv_arousal_features5'
+conv_arousal_log_dir = './graph_conv_arousal_features5_no_dropout'
 
 
 # LSTM model based on raw data
@@ -642,10 +642,15 @@ def convolution_model_energy_power_minmax(data_filename):
 
 def convolution_valence_model_energy_power_entropy_mean_st_dev(data_filename):
     # callbacks
-    tsb_log = TensorBoard(log_dir=conv_log_dir_features5_more_layers, histogram_freq=100, write_graph=True,
+    tsb_log = TensorBoard(log_dir=conv_log_dir_features5,
+                          histogram_freq=100,
+                          write_graph=True,
                           write_images=True)
-    model_filepath = path.join(model_dir, "CONV_FEATURES5_VALENCE" + dt.datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))
-    checkpointer = ModelCheckpoint(filepath=model_filepath, verbose=1, save_best_only=True)
+    model_filepath = path.join(model_dir,
+                               "CONV_FEATURES5_NO_DROPOUT_VALENCE" + dt.datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))
+    checkpointer = ModelCheckpoint(filepath=model_filepath,
+                                   verbose=1,
+                                   save_best_only=True)
 
     n_cols = 70
     n_rows = 1280 * 29
@@ -656,17 +661,17 @@ def convolution_valence_model_energy_power_entropy_mean_st_dev(data_filename):
 
     model_valence.add(Conv1D(32, 9, input_shape=(n_cols, 1)))
     model_valence.add(MaxPooling1D(3, 2))
-    model_valence.add(Dropout(dropout))
+    # model_valence.add(Dropout(dropout))
 
     model_valence.add(Conv1D(64, 5))
     model_valence.add(MaxPooling1D(3, 2))
-    model_valence.add(Dropout(dropout))
+    # model_valence.add(Dropout(dropout))
 
     model_valence.add(Conv1D(128, 3))
     model_valence.add(MaxPooling1D(3, 2))
 
     model_valence.add(Flatten())
-    model_valence.add(Dropout(dropout))
+    # model_valence.add(Dropout(dropout))
 
     model_valence.add(Dense(256, activation='relu', activity_regularizer=l2(0.001)))
     model_valence.add(Dropout(dropout))
@@ -701,7 +706,7 @@ def convolution_valence_model_energy_power_entropy_mean_st_dev(data_filename):
     model_valence.fit(x=x_train,
                       y=y_train,
                       batch_size=batch_size,
-                      epochs=6000,
+                      epochs=3000,
                       validation_data=(x_valid, y_valid),
                       callbacks=[tsb_log, checkpointer])
 
@@ -718,7 +723,7 @@ def convolution_arousal_model_energy_power_entropy_mean_st_dev(data_filename):
     tsb_log = TensorBoard(log_dir=conv_arousal_log_dir, histogram_freq=100, write_graph=True,
                           write_images=True)
     model_filepath = path.join(model_dir,
-                               "CONV_FEATURES5_AROUSAL_" + dt.datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))
+                               "CONV_FEATURES5_NO_DROPOUT_AROUSAL_" + dt.datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))
     checkpointer = ModelCheckpoint(filepath=model_filepath, verbose=1, save_best_only=True)
 
     n_cols = 70
@@ -730,17 +735,17 @@ def convolution_arousal_model_energy_power_entropy_mean_st_dev(data_filename):
 
     model_arousal.add(Conv1D(32, 9, input_shape=(n_cols, 1)))
     model_arousal.add(MaxPooling1D(3, 2))
-    model_arousal.add(Dropout(dropout))
+    # model_arousal.add(Dropout(dropout))
 
     model_arousal.add(Conv1D(64, 5))
     model_arousal.add(MaxPooling1D(3, 2))
-    model_arousal.add(Dropout(dropout))
+    # model_arousal.add(Dropout(dropout))
 
     model_arousal.add(Conv1D(128, 3))
     model_arousal.add(MaxPooling1D(3, 2))
 
     model_arousal.add(Flatten())
-    model_arousal.add(Dropout(dropout))
+    # model_arousal.add(Dropout(dropout))
 
     model_arousal.add(Dense(256, activation='relu', activity_regularizer=l2(0.001)))
     model_arousal.add(Dropout(dropout))
@@ -775,7 +780,7 @@ def convolution_arousal_model_energy_power_entropy_mean_st_dev(data_filename):
     model_arousal.fit(x=x_train,
                       y=y_train,
                       batch_size=batch_size,
-                      epochs=6000,
+                      epochs=3000,
                       validation_data=(x_valid, y_valid),
                       callbacks=[tsb_log, checkpointer])
 

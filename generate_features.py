@@ -10,7 +10,8 @@ import math
 
 from const import separated_data, dwt_data, windowed_data, separated_no_amr, dwt_data_no_amr, \
     dwt_data_no_amr_normalized, names, channels, encoded_features, beta_data, beta_data_normalized, \
-    gamma_coefficients_by_channel, alpha_data, theta_data, energy_power_entropy_mean_st_dev
+    gamma_coefficients_by_channel, alpha_data, theta_data, energy_power_entropy_mean_st_dev, \
+    energy_power_entropy_mean_st_dev_with_amr
 
 
 # FIXME probably useless after file changes
@@ -24,7 +25,7 @@ from const import separated_data, dwt_data, windowed_data, separated_no_amr, dwt
 # encoder_log_dir = './encoder_graph'
 
 # Plots directory for visualisation
-# plots_dir = './plots/'
+plots_dir = './plots/'
 
 # conv_log_dir = './graph_conv_beta4'
 # conv_log_dir_encoded = './graph_conv_encoded'
@@ -323,9 +324,8 @@ def calculate_energy_power_entropy_mean_st_dev(filename, output):
 
 
 def main():
-    calculate_energy_power_entropy_mean_st_dev(dwt_data_no_amr, energy_power_entropy_mean_st_dev)
-
-
+    calculate_energy_power_entropy_mean_st_dev(dwt_data, energy_power_entropy_mean_st_dev_with_amr)
+    # calculate_energy_power_entropy_mean_st_dev(dwt_data_no_amr, energy_power_entropy_mean_st_dev)
     # calculate_power_energy_minmax_diff(dwt_data_no_amr, './energy_power_minmax_diff_no_amr_gamma.pkl')
 
     # calculate_alpha_for_all(separated_data, alpha_data)
