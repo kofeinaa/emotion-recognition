@@ -610,7 +610,6 @@ def convolution_model_energy_power_minmax(data_filename):
 
     valence = all_ratings['valence']
     valence = [item for item in valence for i in range(29)]
-    # arousal = all_ratings['arousal']
 
     v = np.array(valence)
     v = (v - 1) / 8
@@ -661,17 +660,14 @@ def convolution_valence_model_energy_power_entropy_mean_st_dev(data_filename):
 
     model_valence.add(Conv1D(32, 9, input_shape=(n_cols, 1)))
     model_valence.add(MaxPooling1D(3, 2))
-    # model_valence.add(Dropout(dropout))
 
     model_valence.add(Conv1D(64, 5))
     model_valence.add(MaxPooling1D(3, 2))
-    # model_valence.add(Dropout(dropout))
 
     model_valence.add(Conv1D(128, 3))
     model_valence.add(MaxPooling1D(3, 2))
 
     model_valence.add(Flatten())
-    # model_valence.add(Dropout(dropout))
 
     model_valence.add(Dense(256, activation='relu', activity_regularizer=l2(0.001)))
     model_valence.add(Dropout(dropout))
@@ -735,17 +731,14 @@ def convolution_arousal_model_energy_power_entropy_mean_st_dev(data_filename):
 
     model_arousal.add(Conv1D(32, 9, input_shape=(n_cols, 1)))
     model_arousal.add(MaxPooling1D(3, 2))
-    # model_arousal.add(Dropout(dropout))
 
     model_arousal.add(Conv1D(64, 5))
     model_arousal.add(MaxPooling1D(3, 2))
-    # model_arousal.add(Dropout(dropout))
 
     model_arousal.add(Conv1D(128, 3))
     model_arousal.add(MaxPooling1D(3, 2))
 
     model_arousal.add(Flatten())
-    # model_arousal.add(Dropout(dropout))
 
     model_arousal.add(Dense(256, activation='relu', activity_regularizer=l2(0.001)))
     model_arousal.add(Dropout(dropout))
@@ -813,12 +806,6 @@ def feedforward_model_energy_power_entropy_mean_st_dev(data_filename):
 
     model_valence.add(Dense(128, activation='relu', activity_regularizer=l2(0.001)))
     model_valence.add(Dropout(dropout))
-
-    # model_valence.add(Dense(256, activation='relu', activity_regularizer=l2(0.001)))
-    # model_valence.add(Dropout(dropout))
-
-    # model_valence.add(Dense(128, activation='relu', activity_regularizer=l2(0.001)))
-    # model_valence.add(Dropout(dropout))
 
     model_valence.add(Dense(64, activation='relu', activity_regularizer=l2(0.001)))
     model_valence.add(Dropout(dropout))

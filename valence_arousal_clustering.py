@@ -7,7 +7,7 @@ from pandas import DataFrame
 from sklearn.cluster import KMeans
 
 import read_save_data as rd
-from const import dwt_data, energy_power_entropy_mean_st_dev, rating, channels
+from const import energy_power_entropy_mean_st_dev, rating, channels
 
 
 # Shows data labelling
@@ -63,7 +63,7 @@ def cluster_data(filename):
     # plt.show()
 
 
-def cluster_entropy():
+def visualize_entropy():
     features = pkl.load(open(energy_power_entropy_mean_st_dev, 'rb'))
     features_flat = pd.concat(features, ignore_index=True)
 
@@ -72,32 +72,96 @@ def cluster_entropy():
 
     valence = all_ratings['valence']
     valence = [item for item in valence for i in range(29)]
-
     v = np.array(valence)
     v = (v - 1) / 8
-    valance_labels = pd.DataFrame()
-    valance_labels['0'] = list(map(lambda x: 1 if x < 0.33 else 0, v))
-    valance_labels['1'] = list(map(lambda x: 1 if 0.33 <= x < 0.66 else 0, v))
-    valance_labels['2'] = list(map(lambda x: 1 if x >= 0.66 else 0, v))
 
-    n = 1280 * 29
-    zeros = [0] * n
+    arousal = all_ratings['arousal']
+    arousal = [item for item in arousal for i in range(29)]
 
-    classes = valance_labels.idxmax(axis=1)
+    a = np.array(arousal)
+    a = (a - 1) / 8
+
     for channel in channels:
         name = channel + '_entropy'
-
         entropy = features_flat[name]
-        # x = np.arange(np.min(entropy), np.max(entropy))
 
-        plt.title(channel)
-        plt.scatter(entropy, classes)
+        plt.title('Entropy/Valence: ' + channel)
+        plt.scatter(entropy, v, marker='.')
+        plt.legend()
+        plt.show()
+
+        plt.title('Entropy/Arousal: ' + channel)
+        plt.scatter(entropy, a, marker='.')
+        plt.legend()
+        plt.show()
+
+
+def visualize_energy():
+    features = pkl.load(open(energy_power_entropy_mean_st_dev, 'rb'))
+    features_flat = pd.concat(features, ignore_index=True)
+
+    all_ratings = pkl.load(open(rating, 'rb'))
+    print("Data loaded")
+
+    valence = all_ratings['valence']
+    valence = [item for item in valence for i in range(29)]
+    v = np.array(valence)
+    v = (v - 1) / 8
+
+    arousal = all_ratings['arousal']
+    arousal = [item for item in arousal for i in range(29)]
+
+    a = np.array(arousal)
+    a = (a - 1) / 8
+
+    for channel in channels:
+        name = channel + '_energy'
+        energy = features_flat[name]
+
+        plt.title('Energy/Valence: ' + channel)
+        plt.scatter(energy, v, marker='.', color=['red'])
+        plt.legend()
+        plt.show()
+
+        plt.title('Energy/Arousal: ' + channel)
+        plt.scatter(energy, a, marker='.', color=['red'])
+        plt.legend()
+        plt.show()
+
+
+def visualize_entropy_energy():
+    features = pkl.load(open(energy_power_entropy_mean_st_dev, 'rb'))
+    features_flat = pd.concat(features, ignore_index=True)
+    #
+    all_ratings = pkl.load(open(rating, 'rb'))
+    print("Data loaded")
+
+    valence = all_ratings['valence']
+    valence = [item for item in valence for i in range(29)]
+    v = np.array(valence)
+    v = (v - 1) / 8
+
+    valence_labels = pd.DataFrame()
+    valence_labels['0.2'] = list(map(lambda x: 1 if x < 0.33 else 0, v))
+    valence_labels['0.5'] = list(map(lambda x: 1 if 0.33 <= x < 0.66 else 0, v))
+    valence_labels['1'] = list(map(lambda x: 1 if x >= 0.66 else 0, v))
+    c = valence_labels.idxmax(axis=1)
+
+    for channel in channels:
+        energy_name = channel + '_energy'
+        entropy_name = channel + '_entropy'
+        entropy = features_flat[energy_name]
+        energy = features_flat[entropy_name]
+
+        plt.title('Energy/Entropy: ' + channel)
+        plt.scatter(energy, entropy, marker='.', color=c)
         plt.legend()
         plt.show()
 
 
 def main():
-    cluster_entropy()
+    visualize_entropy_energy()
+
 
 if __name__ == "__main__":
     main()
