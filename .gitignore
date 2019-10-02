@@ -9,6 +9,7 @@ events*
 /encoder/
 /encoder_graph/
 /__pycache__/
+/model/
 *png
 *pkl
 !energy*pkl
