@@ -3,6 +3,7 @@ import pathlib
 import pickle as pkl
 from os import path
 
+import joblib as j
 import numpy as np
 import pandas as pd
 from keras import Input, regularizers, Model
@@ -36,6 +37,9 @@ conv_log_dir_features5 = './graph_conv_features5_no_dropout'
 conv_log_dir_features5_more_layers = './graph_conv_features5_more_layers'
 feedforward_log_dir_features5 = './graph_feedforward_features5'
 conv_arousal_log_dir = './graph_conv_arousal_features5_no_dropout'
+
+validation_log_valence = './graph_valid_valence'
+validation_log_arousal = './graph_valid_arousal'
 
 
 # LSTM model based on raw data
@@ -354,6 +358,8 @@ def create_dir():
     pathlib.Path(conv_log_dir_features5_more_layers).mkdir(exist_ok=True)
     pathlib.Path(feedforward_log_dir_features5).mkdir(exist_ok=True)
     pathlib.Path(conv_arousal_log_dir).mkdir(exist_ok=True)
+    pathlib.Path(validation_log_valence).mkdir(exist_ok=True)
+    pathlib.Path(validation_log_arousal).mkdir(exist_ok=True)
 
 
 # Show results of autoencoder
@@ -641,7 +647,7 @@ def convolution_model_energy_power_minmax(data_filename):
 
 def convolution_valence_model_energy_power_entropy_mean_st_dev(data_filename):
     # callbacks
-    tsb_log = TensorBoard(log_dir=conv_log_dir_features5,
+    tsb_log = TensorBoard(log_dir=validation_log_valence,
                           histogram_freq=100,
                           write_graph=True,
                           write_images=True)
@@ -695,9 +701,21 @@ def convolution_valence_model_energy_power_entropy_mean_st_dev(data_filename):
 
     print("Data labeled")
 
-    # valance train
-    x_train, x_valid, y_train, y_valid = train_test_split(np.array(features_flat).reshape(n_rows, n_cols, 1),
-                                                          valance_labels, test_size=0.2)
+    # # valance train
+    # x_train, x_valid, y_train, y_valid = train_test_split(np.array(features_flat).reshape(n_rows, n_cols, 1),
+    #                                                       valance_labels, test_size=0.2)
+    #
+    # j.dump(x_train, 'valence_x_train')
+    # j.dump(y_train, 'valence_y_train')
+    # print('train data dumped')
+    # j.dump(x_valid, 'valence_x_valid')
+    # j.dump(y_valid, 'valence_y_valid')
+    # print('valid data dumped')
+
+    x_train = j.load('valence_x_train')
+    y_train = j.load('valence_y_train')
+    x_valid = j.load('valence_x_valid')
+    y_valid = j.load('valence_y_valid')
 
     model_valence.fit(x=x_train,
                       y=y_train,
@@ -716,7 +734,7 @@ def convolution_valence_model_energy_power_entropy_mean_st_dev(data_filename):
 
 def convolution_arousal_model_energy_power_entropy_mean_st_dev(data_filename):
     # callbacks
-    tsb_log = TensorBoard(log_dir=conv_arousal_log_dir, histogram_freq=100, write_graph=True,
+    tsb_log = TensorBoard(log_dir=validation_log_arousal, histogram_freq=100, write_graph=True,
                           write_images=True)
     model_filepath = path.join(model_dir,
                                "CONV_FEATURES5_NO_DROPOUT_AROUSAL_" + dt.datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))
@@ -767,8 +785,20 @@ def convolution_arousal_model_energy_power_entropy_mean_st_dev(data_filename):
     print("Data labeled")
 
     # arousal train
-    x_train, x_valid, y_train, y_valid = train_test_split(np.array(features_flat).reshape(n_rows, n_cols, 1),
-                                                          arousal_labels, test_size=0.2)
+    # x_train, x_valid, y_train, y_valid = train_test_split(np.array(features_flat).reshape(n_rows, n_cols, 1),
+    #                                                       arousal_labels, test_size=0.2)
+
+    # j.dump(x_train, 'arousal_x_train')
+    # j.dump(y_train, 'arousal_y_train')
+    # print('train data dumped')
+    # j.dump(x_valid, 'arousal_x_valid')
+    # j.dump(y_valid, 'arousal_y_valid')
+    # print('valid data dumped')
+
+    x_train = j.load('arousal_x_train')
+    y_train = j.load('arousal_y_train')
+    x_valid = j.load('arousal_x_valid')
+    y_valid = j.load('arousal_y_valid')
 
     model_arousal.fit(x=x_train,
                       y=y_train,
@@ -781,6 +811,7 @@ def convolution_arousal_model_energy_power_entropy_mean_st_dev(data_filename):
                                         y=y_valid,
                                         verbose=2,
                                         batch_size=batch_size)
+
     print("Score: %.4f" % score)
     print("Acc: %.4f" % acc)
 
@@ -857,7 +888,8 @@ def feedforward_model_energy_power_entropy_mean_st_dev(data_filename):
 
 def main():
     create_dir()
-    convolution_arousal_model_energy_power_entropy_mean_st_dev(energy_power_entropy_mean_st_dev)
+    # convolution_arousal_model_energy_power_entropy_mean_st_dev(energy_power_entropy_mean_st_dev)
+    convolution_valence_model_energy_power_entropy_mean_st_dev(energy_power_entropy_mean_st_dev)
 
     # convolution_model_energy_power_minmax(energy_power_minmax_minmax_diff_amr_gamma)
     # lstm_model_dwt(dwt_data)

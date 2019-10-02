@@ -4,6 +4,8 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.model_selection import cross_val_score
 from sklearn.model_selection import KFold
 from const import knn_features, knn_downsampled_pkl
+from joblib import dump, load
+
 
 df = pd.read_pickle(knn_downsampled_pkl)
 
@@ -44,6 +46,12 @@ arousal_scores3 = cross_val_score(cf_a3, features, arousal_labels3, cv=c3, scori
 
 print(valence_scores)
 print(arousal_scores)
+
+
+# cf_a.fit(features, labels_arousal)
+# cf_v.fit(features, labels_valence)
+# dump(cf_v, 'knn_valence.joblib')
+# dump(cf_a, 'knn_arousal.joblib')
 
 print(valence_scores3)
 print(arousal_scores3)
