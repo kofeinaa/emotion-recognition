@@ -39,7 +39,9 @@ feedforward_log_dir_features5 = './graph_feedforward_features5'
 conv_arousal_log_dir = './graph_conv_arousal_features5_no_dropout'
 
 validation_log_valence = './graph_valid_valence'
+validation_log_valence_3split = './graph_valid_valence_3split'
 validation_log_arousal = './graph_valid_arousal'
+validation_log_arousal_3split = './graph_valid_arousal_3split'
 
 
 # LSTM model based on raw data
@@ -360,6 +362,8 @@ def create_dir():
     pathlib.Path(conv_arousal_log_dir).mkdir(exist_ok=True)
     pathlib.Path(validation_log_valence).mkdir(exist_ok=True)
     pathlib.Path(validation_log_arousal).mkdir(exist_ok=True)
+    pathlib.Path(validation_log_valence_3split).mkdir(exist_ok=True)
+    pathlib.Path(validation_log_arousal_3split).mkdir(exist_ok=True)
 
 
 # Show results of autoencoder
@@ -647,12 +651,13 @@ def convolution_model_energy_power_minmax(data_filename):
 
 def convolution_valence_model_energy_power_entropy_mean_st_dev(data_filename):
     # callbacks
-    tsb_log = TensorBoard(log_dir=validation_log_valence,
+    tsb_log = TensorBoard(log_dir=validation_log_valence_3split,
                           histogram_freq=100,
                           write_graph=True,
                           write_images=True)
     model_filepath = path.join(model_dir,
-                               "CONV_FEATURES5_NO_DROPOUT_VALENCE" + dt.datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))
+                               "CONV_FEATURES5_NO_DROPOUT_VALENCE_3SPLIT_" + dt.datetime.now().strftime(
+                                   "%Y_%m_%d_%H_%M_%S"))
     checkpointer = ModelCheckpoint(filepath=model_filepath,
                                    verbose=1,
                                    save_best_only=True)
@@ -683,61 +688,63 @@ def convolution_valence_model_energy_power_entropy_mean_st_dev(data_filename):
     model_valence.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
 
     print(model_valence.summary())
-
-    features = pkl.load(open(data_filename, 'rb'))
-    features_flat = pd.concat(features, ignore_index=True)
-    all_ratings = pkl.load(open(rating, 'rb'))
-    print("Data loaded")
-
-    valence = all_ratings['valence']
-    valence = [item for item in valence for i in range(29)]
-
-    v = np.array(valence)
-    v = (v - 1) / 8
-    valance_labels = pd.DataFrame()
-    valance_labels['0'] = list(map(lambda x: 1 if x < 0.33 else 0, v))
-    valance_labels['1'] = list(map(lambda x: 1 if 0.33 <= x < 0.66 else 0, v))
-    valance_labels['2'] = list(map(lambda x: 1 if x >= 0.66 else 0, v))
-
-    print("Data labeled")
+    #
+    # features = pkl.load(open(data_filename, 'rb'))
+    # features_flat = pd.concat(features, ignore_index=True)
+    # all_ratings = pkl.load(open(rating, 'rb'))
+    # print("Data loaded")
+    #
+    # valence = all_ratings['valence']
+    # valence = [item for item in valence for i in range(29)]
+    #
+    # v = np.array(valence)
+    # v = (v - 1) / 8
+    # valance_labels = pd.DataFrame()
+    # valance_labels['0'] = list(map(lambda x: 1 if x < 0.33 else 0, v))
+    # valance_labels['1'] = list(map(lambda x: 1 if 0.33 <= x < 0.66 else 0, v))
+    # valance_labels['2'] = list(map(lambda x: 1 if x >= 0.66 else 0, v))
+    #
+    # print("Data labeled")
 
     # # valance train
     # x_train, x_valid, y_train, y_valid = train_test_split(np.array(features_flat).reshape(n_rows, n_cols, 1),
     #                                                       valance_labels, test_size=0.2)
-    #
-    # j.dump(x_train, 'valence_x_train')
-    # j.dump(y_train, 'valence_y_train')
-    # print('train data dumped')
-    # j.dump(x_valid, 'valence_x_valid')
-    # j.dump(y_valid, 'valence_y_valid')
-    # print('valid data dumped')
 
     x_train = j.load('valence_x_train')
     y_train = j.load('valence_y_train')
-    x_valid = j.load('valence_x_valid')
-    y_valid = j.load('valence_y_valid')
+
+    x_valid = j.load('new_valence_x_valid')
+    y_valid = j.load('new_valence_y_valid')
+
+    x_test = j.load('valence_x_test')
+    y_test = j.load('valence_y_test')
 
     model_valence.fit(x=x_train,
                       y=y_train,
                       batch_size=batch_size,
-                      epochs=3000,
+                      epochs=600,
                       validation_data=(x_valid, y_valid),
                       callbacks=[tsb_log, checkpointer])
 
-    score, acc = model_valence.evaluate(x=x_valid,
-                                        y=y_valid,
-                                        verbose=2,
-                                        batch_size=batch_size)
+    loaded_model = load_model(model_filepath)
+    score, acc = loaded_model.evaluate(x=x_test,
+                                       y=y_test,
+                                       verbose=2,
+                                       batch_size=batch_size)
+    print("Score for saved model")
     print("Score: %.4f" % score)
     print("Acc: %.4f" % acc)
 
 
 def convolution_arousal_model_energy_power_entropy_mean_st_dev(data_filename):
     # callbacks
-    tsb_log = TensorBoard(log_dir=validation_log_arousal, histogram_freq=100, write_graph=True,
+    tsb_log = TensorBoard(log_dir=validation_log_valence_3split,
+                          histogram_freq=100,
+                          write_graph=True,
                           write_images=True)
     model_filepath = path.join(model_dir,
-                               "CONV_FEATURES5_NO_DROPOUT_AROUSAL_" + dt.datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))
+                               "CONV_FEATURES5_NO_DROPOUT_AROUSAL_3_SPLIT_" + dt.datetime.now().strftime(
+                                   "%Y_%m_%d_%H_%M_%S"))
     checkpointer = ModelCheckpoint(filepath=model_filepath, verbose=1, save_best_only=True)
 
     n_cols = 70
@@ -767,51 +774,49 @@ def convolution_arousal_model_energy_power_entropy_mean_st_dev(data_filename):
 
     print(model_arousal.summary())
 
-    features = pkl.load(open(data_filename, 'rb'))
-    features_flat = pd.concat(features, ignore_index=True)
-    all_ratings = pkl.load(open(rating, 'rb'))
-    print("Data loaded")
-
-    arousal = all_ratings['arousal']
-    arousal = [item for item in arousal for i in range(29)]
-
-    a = np.array(arousal)
-    a = (a - 1) / 8
-    arousal_labels = pd.DataFrame()
-    arousal_labels['0'] = list(map(lambda x: 1 if x < 0.33 else 0, a))
-    arousal_labels['1'] = list(map(lambda x: 1 if 0.33 <= x < 0.66 else 0, a))
-    arousal_labels['2'] = list(map(lambda x: 1 if x >= 0.66 else 0, a))
-
-    print("Data labeled")
+    # features = pkl.load(open(data_filename, 'rb'))
+    # features_flat = pd.concat(features, ignore_index=True)
+    # all_ratings = pkl.load(open(rating, 'rb'))
+    # print("Data loaded")
+    #
+    # arousal = all_ratings['arousal']
+    # arousal = [item for item in arousal for i in range(29)]
+    #
+    # a = np.array(arousal)
+    # a = (a - 1) / 8
+    # arousal_labels = pd.DataFrame()
+    # arousal_labels['0'] = list(map(lambda x: 1 if x < 0.33 else 0, a))
+    # arousal_labels['1'] = list(map(lambda x: 1 if 0.33 <= x < 0.66 else 0, a))
+    # arousal_labels['2'] = list(map(lambda x: 1 if x >= 0.66 else 0, a))
+    #
+    # print("Data labeled")
 
     # arousal train
     # x_train, x_valid, y_train, y_valid = train_test_split(np.array(features_flat).reshape(n_rows, n_cols, 1),
     #                                                       arousal_labels, test_size=0.2)
 
-    # j.dump(x_train, 'arousal_x_train')
-    # j.dump(y_train, 'arousal_y_train')
-    # print('train data dumped')
-    # j.dump(x_valid, 'arousal_x_valid')
-    # j.dump(y_valid, 'arousal_y_valid')
-    # print('valid data dumped')
-
     x_train = j.load('arousal_x_train')
     y_train = j.load('arousal_y_train')
-    x_valid = j.load('arousal_x_valid')
-    y_valid = j.load('arousal_y_valid')
+
+    x_valid = j.load('new_arousal_x_valid')
+    y_valid = j.load('new_arousal_y_valid')
+
+    x_test = j.load('arousal_x_test')
+    y_test = j.load('arousal_y_test')
 
     model_arousal.fit(x=x_train,
                       y=y_train,
                       batch_size=batch_size,
-                      epochs=3000,
+                      epochs=600,
                       validation_data=(x_valid, y_valid),
                       callbacks=[tsb_log, checkpointer])
 
-    score, acc = model_arousal.evaluate(x=x_valid,
-                                        y=y_valid,
-                                        verbose=2,
-                                        batch_size=batch_size)
-
+    loaded_model = load_model(model_filepath)
+    score, acc = loaded_model.evaluate(x=x_test,
+                                       y=y_test,
+                                       verbose=2,
+                                       batch_size=batch_size)
+    print("Score for saved model")
     print("Score: %.4f" % score)
     print("Acc: %.4f" % acc)
 
@@ -888,8 +893,8 @@ def feedforward_model_energy_power_entropy_mean_st_dev(data_filename):
 
 def main():
     create_dir()
-    # convolution_arousal_model_energy_power_entropy_mean_st_dev(energy_power_entropy_mean_st_dev)
-    convolution_valence_model_energy_power_entropy_mean_st_dev(energy_power_entropy_mean_st_dev)
+    convolution_arousal_model_energy_power_entropy_mean_st_dev(energy_power_entropy_mean_st_dev)
+    # convolution_valence_model_energy_power_entropy_mean_st_dev(energy_power_entropy_mean_st_dev)
 
     # convolution_model_energy_power_minmax(energy_power_minmax_minmax_diff_amr_gamma)
     # lstm_model_dwt(dwt_data)
